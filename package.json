@@ -1,0 +1,30 @@
+{
+  "name": "hold-em-logic",
+  "version": "1.0.0",
+  "description": "some simple logic for texas holdem",
+  "main": "index.js",
+  "scripts": {
+    "start": "babel-node index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ejhalpin/hold-em-logic.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/ejhalpin/hold-em-logic/issues"
+  },
+  "homepage": "https://github.com/ejhalpin/hold-em-logic#readme",
+  "devDependencies": {
+    "@babel/cli": "^7.6.0",
+    "@babel/core": "^7.6.0",
+    "@babel/node": "^7.6.1",
+    "@babel/preset-env": "^7.6.0"
+  },
+  "dependencies": {
+    "lodash": "^4.17.15"
+  }
+}
