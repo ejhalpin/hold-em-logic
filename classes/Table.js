@@ -1,14 +1,15 @@
 import Deck from "./Deck";
 var _ = require("lodash");
 export default class Table {
-  constructor(buyIn = 200, bigBlind = 10, smallBlind = 12, autoIncrementBlinds = false) {
+  constructor(buyIn = 200, bigBlind = 10, smallBlind = 12, autoIncrementBlinds = false, limit = true) {
     this.buyIn = buyIn;
     this.bigBlind = bigBlind;
     this.smallBlind = smallBlind;
     this.autoIncrementBlinds = autoIncrementBlinds;
+    this.limit = limit;
     this.players = [];
-    this.pool = 0;
-    this.Deck = new Deck();
+    this.pool = [0];
+    this.deck = new Deck();
     this.flop = [];
     this.turn;
     this.river;
@@ -34,17 +35,17 @@ export default class Table {
   }
 
   deal(iter) {
-    this.Deck.shuffle(iter);
+    this.deck.shuffle(iter);
     for (var i = 0; i < 2; i++) {
       this.players.forEach(player => {
-        player.cards.push(this.Deck.draw());
+        player.cards.push(this.deck.draw());
       });
     }
   }
 
   doFlop() {
     for (var i = 0; i < 3; i++) {
-      this.flop.push(this.Deck.draw());
+      this.flop.push(this.deck.draw());
     }
     var theFlop = "THE FLOP: ";
     this.flop.forEach(card => {
@@ -54,12 +55,12 @@ export default class Table {
   }
 
   doTurn() {
-    this.turn = this.Deck.draw();
+    this.turn = this.deck.draw();
     console.log("THE TURN: " + this.turn.print());
   }
 
   doRiver() {
-    this.river = this.Deck.draw();
+    this.river = this.deck.draw();
     console.log("THE RIVER: " + this.river.print());
   }
 
@@ -136,10 +137,7 @@ const bestHand = (cards = []) => {
         straight.push(cards[i]);
         justPushed = false;
       }
-      if (straight.length >= 5) {
-        //hand.straight = true;
-        console.log("Straight!");
-      } else {
+      if (straight.length < 5) {
         straight = [];
       }
     }
@@ -187,7 +185,7 @@ const bestHand = (cards = []) => {
     }
     clone = clone.filter(val => val.value !== card.value);
   });
-  console.log("GROUPINGS =====> " + groupings);
+
   //figure out the wining hand
   var hand = {
     cards: [],

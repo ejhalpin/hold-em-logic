@@ -1,14 +1,11 @@
 import Card from "./Card";
+import cardArt from "../cardArt.json";
 
 export default class Deck {
   constructor() {
     this.cards = [];
-    this.suits = ["diamond", "heart", "club", "spade"];
-    this.suits.forEach(suit => {
-      for (var i = 2; i < 15; i++) {
-        this.cards.push(new Card(i, suit));
-      }
-    });
+
+    cardArt.forEach(card => this.cards.push(new Card(card.value, suit, card.art)));
   }
 
   shuffle(iter = 1) {
@@ -18,6 +15,9 @@ export default class Deck {
   }
 
   draw() {
+    if (this.cards.length === 0) {
+      throw new Error("Empty Deck!");
+    }
     return this.cards.shift();
   }
 
@@ -27,7 +27,7 @@ export default class Deck {
 
   print() {
     this.cards.forEach(card => {
-      card.print();
+      console.log(card.print());
     });
   }
 }
