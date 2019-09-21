@@ -25,6 +25,7 @@ export default class Card {
       default:
         this.displayValue = value.toString();
     }
+    this.description = this.displayValue + " of " + this.suit + "s";
   }
 
   flip() {

@@ -5,7 +5,7 @@ export default class Deck {
   constructor() {
     this.cards = [];
 
-    cardArt.forEach(card => this.cards.push(new Card(card.value, suit, card.art)));
+    cardArt.forEach(card => this.cards.push(new Card(card.value, card.suit, card.art)));
   }
 
   shuffle(iter = 1) {

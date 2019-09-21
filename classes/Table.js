@@ -1,5 +1,7 @@
 import Deck from "./Deck";
 var _ = require("lodash");
+import { table } from "table";
+
 export default class Table {
   constructor(buyIn = 200, bigBlind = 10, smallBlind = 12, autoIncrementBlinds = false, limit = true) {
     this.buyIn = buyIn;
@@ -9,59 +11,173 @@ export default class Table {
     this.limit = limit;
     this.players = [];
     this.pool = [0];
+    this.currentPool = 0;
     this.deck = new Deck();
     this.flop = [];
     this.turn;
     this.river;
+    this.dealerIndex = 0;
+    this.round = 0;
+    this.currentBet = 0;
+    this.position = 3;
+    this.betsIn = false;
+  }
+  init() {
+    //run this function after players have been added to the table.
+    //It determines the dealer and blind positions, forces small and big blind bets,
+    //and sets the table position to the player index after the big blind.
+    //cyle past the dealer
+    this.rotate();
+    //collect the small blind
+    this.players[0].bet(this.smallBlind, this.round);
+    this.collect(this.smallBlind);
+    this.players[0].didBet = false;
+    this.rotate();
+    //collect the big blind
+    this.players[0].bet(this.bigBlind, this.round);
+    this.players[0].didBet = false;
+    this.rotate();
+    this.currentBet = this.bigBlind;
+  }
+
+  rotate() {
+    this.players.push(this.players.shift());
+  }
+
+  collect(chips) {
+    this.pool[this.currentPool] += chips;
+  }
+
+  takeBets() {
+    while (!this.betsIn) {
+      if (this.players[0].didFold) {
+        this.rotate();
+        continue;
+      }
+      if (this.players[0].didBet && this.players[0].bets[this.round] === this.currentBet) {
+        //the round of betting is over.
+        //reset the didBet value for each player
+        this.players.forEach(player => {
+          player.didBet = false;
+          if (this.round < 4) {
+            player.bets.push(0);
+          }
+        });
+        //reorder the players by their position and rotate past the dealer
+        this.players.sort((a, b) => a.position - b.position);
+        this.rotate();
+        //increase the round
+        this.round++;
+        this.currentBet = 0;
+        console.log("betting over for round " + this.round);
+        break;
+      }
+      if (this.currentBet) {
+        //action is on the player at position 0
+        //the player must call, raise or fold. For now, lets just have everyone call
+        if (this.getCurrentBet(0) === this.currentBet) {
+          this.players[0].check();
+        } else {
+          this.collect(this.players[0].call(this.currentBet, this.round));
+        }
+      } else {
+        //the player can check, bet, or fold
+        //for now, just put in the big blind
+        this.players[0].bet(this.bigBlind, this.round);
+        this.currentBet = this.bigBlind;
+        this.collect(this.bigBlind);
+      }
+      this.rotate();
+    }
+  }
+
+  getCurrentBet(index) {
+    //var name = this.players[0].name;
+    var currentBet = this.players[0].bets[this.round];
+    //console.log(name + " has bet " + currentBet);
+    return currentBet;
   }
 
   addPlayer(player) {
-    if (this.players.length === 8) {
-      console.log("Table is full");
+    if (player.cash < this.buyIn) {
+      console.log("you don't have enough chips to join this table");
       return;
     }
+    player.cash -= this.buyIn;
+    player.chips = this.buyIn;
+    player.position = this.players.length;
     this.players.push(player);
   }
 
   bustPlayer(player) {
     var remainingPlayers = this.players.filter(function(val) {
-      return val !== player;
+      return val.id !== player.id;
     });
     this.players = remainingPlayers;
+    if (this.players.length === 2) {
+      this.buttons = [0, 0, 1];
+    }
   }
 
   payOut(player, value) {
     player.chips(value);
   }
 
-  deal(iter) {
+  deal(iter = 10) {
     this.deck.shuffle(iter);
     for (var i = 0; i < 2; i++) {
       this.players.forEach(player => {
-        player.cards.push(this.deck.draw());
+        var card = this.deck.draw();
+        if (!player.bot) {
+          card.flip();
+        }
+        player.cards.push(card);
       });
     }
+    this.players.forEach(player => {
+      var row0 = [];
+      var row1 = [];
+      row0.push(player.name);
+      row1.push(player.chips);
+      player.cards.forEach(card => {
+        row0.push(card.print());
+        row1.push(card.faceUp ? card.description : "*******");
+      });
+      let data = [row0, row1];
+      const output = table(data);
+      console.log(output);
+    });
   }
 
   doFlop() {
+    //burn a card
+    this.deck.draw();
+
     for (var i = 0; i < 3; i++) {
       this.flop.push(this.deck.draw());
     }
-    var theFlop = "THE FLOP: ";
+    var theFlop = "THE FLOP: \n";
     this.flop.forEach(card => {
-      theFlop += card.print() + "\t";
+      card.flip();
+      theFlop += card.print() + "\n";
     });
     console.log(theFlop);
   }
 
   doTurn() {
+    //burn a card
+    this.deck.draw();
     this.turn = this.deck.draw();
-    console.log("THE TURN: " + this.turn.print());
+    this.turn.flip();
+    console.log("THE TURN: \n" + this.turn.print());
   }
 
   doRiver() {
+    //burn a card
+    this.deck.draw();
     this.river = this.deck.draw();
-    console.log("THE RIVER: " + this.river.print());
+    this.river.flip();
+    console.log("THE RIVER: \n" + this.river.print());
   }
 
   findBestHand() {
@@ -88,8 +204,8 @@ export default class Table {
         return b.value - a.value;
       }
       for (var i = 0; i < a.otherCards.length; i++) {
-        if (a.otherCards[i] !== b.otherCards[i]) {
-          return b.otherCards[i] - a.otherCards[i];
+        if (a.otherCards[i].value !== b.otherCards[i].value) {
+          return b.otherCards[i].value - a.otherCards[i].value;
         }
       }
       return 0;
